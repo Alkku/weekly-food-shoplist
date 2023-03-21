@@ -77,57 +77,34 @@ def inputEmail():  # Run this later in the program
 
 
 def fetchRecipeWebsites(chosenRecipes): #This should return list of ingredients for each recipe
-    #drive = webdriver.Chrome(service=Service('C:/git/Weekly_Food_Shoplist/weekly-food-shoplist/chromedriver.exe'))
-    #chrome_options = Options()
-    #chrome_options.add_argument("--headless")
-    #drive = webdriver.Chrome(options=chrome_options)
-    url = "https://www.valio.fi/reseptit/jauheliha-nachos-1/"
-    df = pd.read_html(url)-
-    print(df[0])
+    for recipe in range(len(chosenRecipes)):
+        print(recipe)
+        url = "https://www.valio.fi" + str(chosenRecipes[recipe][2])
+        dataframe = pd.read_html(url)
 
+        if recipe == 0:
+            df1 = pd.DataFrame(dataframe[0])
+            df1.columns = ['MÄÄRÄ', 'AINESOSA']
+        elif recipe == 1:
+            df2 = pd.DataFrame(dataframe[0])
+            df2.columns = ['MÄÄRÄ', 'AINESOSA']
+        elif recipe == 2:
+            df3 = pd.DataFrame(dataframe[0])
+            df3.columns = ['MÄÄRÄ', 'AINESOSA']
+        elif recipe == 3:
+            df4 = pd.DataFrame(dataframe[0])
+            df4.columns = ['MÄÄRÄ', 'AINESOSA']
+        else:
+            df5 = pd.DataFrame(dataframe[0])
+            df5.columns = ['MÄÄRÄ', 'AINESOSA']
 
+    all_frames = [df1, df2, df3, df4, df5]
+    result = pd.concat(all_frames)
+    drop_rows = result[(result['MÄÄRÄ'] == result['AINESOSA'])].index
+    result.drop(drop_rows, inplace=True)
+    return result.sort_values(by=['AINESOSA'])
 
-    #for recipe in range(len(chosenRecipes)):
-
-        #url = "https://www.valio.fi" + str(chosenRecipes[recipe][2])
-        #df = pd.read_html(url)
-        #df[0].rename(columns={"0": "Määrä", "1": "Ainesosa"})
-
-
-
-        #If valuecolumn1 = valuecolumn2 -> delete
-
-
-
-
-
-
-
-
-        #print(chosenRecipes[recipe][2])
-        #drive.get("https://www.valio.fi" + str(chosenRecipes[recipe][2]))
-        #html = drive.page_source
-        #soup = BeautifulSoup(html, 'html.parser')
-        #lists = soup.find_all('tr')
-
-        #i = 0
-        #for list in lists:
-
-            #trythis = list.find("span").text.replace('\n', '')
-            #ingredientAmount = list.find("td", class_="IngredientRowLeft-sc-25fwcz cXfQpc").text.replace('\n', '')
-            #ingredientName = list.find("div", class_="IngredientRowRightContainer-sc-egmiky dSBYXk")
-            #ingredientList = [ingredientName]
-            #finalIngredientList.insert(i, ingredientList)
-            #i += 1
-            #print(finalIngredientList)
-    #print(finalIngredientList)
-
-
-
-    #return finalIngredientList"""""
-
-
-def computeIngredients():
+def computeIngredients(ingredientsDataframe):
     pass
 
 
@@ -152,7 +129,7 @@ while programRunning:
         print("----------------------------------------------------------------------------")
         if changeRecipeNr == "":
             fetchedRecipes = fetchRecipeWebsites(fiveRandomRecipesList)
-            #print(fetchedRecipes)
+            print(fetchedRecipes)
             recipeListNotDone = False
         elif int(changeRecipeNr) not in range(1,6) or isinstance(changeRecipeNr, (int, float)) == False:
             print("Arvo ei ole 1 ja 5 välillä. Anna uusi arvo.")
@@ -168,6 +145,7 @@ while programRunning:
             print("----------------------------------------------------------------------------")
 
 
+    readyForMail = computeIngredients(fetchedRecipes)
 
 
 
