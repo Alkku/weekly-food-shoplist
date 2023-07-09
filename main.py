@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+from tqdm import tqdm
 from selenium import webdriver
 import pandas as pd
 from selenium.webdriver.chrome.options import Options
@@ -22,7 +23,7 @@ def fetchRecipes():
     driver = webdriver.Chrome(options=chrome_options)
 
 
-    foods = ['liha', 'kala', 'jauheliha']
+    foods = ['liha', 'kala', 'jauheliha', 'broileri']
     finalFoodList = []
 
     for i in range(len(foods)):
@@ -41,19 +42,20 @@ def fetchRecipes():
                 html = driver.page_source
                 soup = BeautifulSoup(html, 'html.parser')
 
-                lists = soup.find_all('a', class_="StyledCardWrapper-sc-83brm2 dYMhnT recipe-card search-result-card")
+                lists = soup.find_all('a', class_="StyledCardWrapper-sc-1x87nsj dJJHhy recipe-card search-result-card")
                 i = 0
                 for list in lists:  # Take the 50 highest ranked recipes per food category
                     i += 1
                     foodName = list.find("div",
-                                         class_="CardTitle-sc-q66kkn RecipeCardTitle-sc-agd8pc iBoraM fwfgnt recipe-card-title").text.replace(
+                                         class_="CardTitle-sc-i9wkow RecipeCardTitle-sc-7be5j4 eNyUcv xmKgT recipe-card-title").text.replace(
                         '\n', '')
                     timeToMake = list.find("div",
-                                         class_="StyledCookingTime-sc-8fvacb iLRGmH").text.replace(
+                                         class_="StyledCookingTime-sc-1wzbg24 cBCVbc").text.replace(
                         '\n', '')
                     recipeUrlEnding = list['href']
 
                     foodNameList = [foodName.lower(), timeToMake, recipeUrlEnding]
+
 
                     finalFoodList.insert(i, foodNameList)
                     if i == 50:
@@ -77,8 +79,7 @@ def inputEmail():  # Run this later in the program
 
 
 def fetchRecipeWebsites(chosenRecipes): #This should return list of ingredients for each recipe
-    for recipe in range(len(chosenRecipes)):
-        print(recipe)
+    for recipe in tqdm(range(len(chosenRecipes))):
         url = "https://www.valio.fi" + str(chosenRecipes[recipe][2])
         dataframe = pd.read_html(url)
 
@@ -104,16 +105,67 @@ def fetchRecipeWebsites(chosenRecipes): #This should return list of ingredients 
     result.drop(drop_rows, inplace=True)
     return result.sort_values(by=['AINESOSA'])
 
-def computeIngredients(ingredientsDataframe):
-    pass
+
+def computeIngredients(ingredient_df):
+    # Let's find all the duplicates
+    duplicate_ingredients = ingredient_df.duplicated(keep=False, subset=["AINESOSA"])
+    duplicate_ingredients.name = 'DUPLICATES'
+    concat_duplicates = pd.concat([ingredient_df, duplicate_ingredients], axis=1)
+    save_concat_duplicates = concat_duplicates
+    new_df = concat_duplicates[(concat_duplicates['DUPLICATES'] == True)]
+    duplicates_list = new_df.values.tolist()
+
+    # We create new list to eliminate duplicates.
+    cleansed_list = []
+    for i in range(len(duplicates_list)):
+        if i == 0:
+            new_amount = ""
+        elif i > 0 and "+" not in new_amount and duplicates_list[i-1][1] == duplicates_list[i][1]:
+            new_amount = str(duplicates_list[i-1][0]).replace(" ","") + ' + ' + str(duplicates_list[i][0]).replace(" ","")
+        elif i > 0 and "+" in new_amount and duplicates_list[i-1][1] == duplicates_list[i][1]:
+            new_amount = new_amount + ' + ' + str(duplicates_list[i][0]).replace(" ","")
+            if i == len(duplicates_list)-1:
+                cleansed_list.append([new_amount, duplicates_list[i][1]])
+        elif i > 0 and duplicates_list[i-1][1] != duplicates_list[i][1]:
+            cleansed_list.append([new_amount, duplicates_list[i-1][1]])
+            new_amount = ""
+
+    df_cleansed_list = pd.DataFrame(cleansed_list)
+    df_cleansed_list.columns = ['MÄÄRÄ', 'AINESOSA']
+    dup_cleansed_list = save_concat_duplicates.drop_duplicates(subset=['AINESOSA'], keep=False)
+    new_dup_cleansed = dup_cleansed_list.drop('DUPLICATES', axis=1)
+    final_dataframe = pd.concat([new_dup_cleansed, df_cleansed_list])
+    return final_dataframe
 
 
-def sendEmail():
+
+
+def sendEmail(final_dataframe, recipe_and_urls):
     pass
+    # We create the final print
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 while programRunning:
     acquiredFoodList = fetchRecipes()
+    print(acquiredFoodList)
     print("----------------------------------------------------------------------------")
 
     for i in range(5):
@@ -129,9 +181,8 @@ while programRunning:
         print("----------------------------------------------------------------------------")
         if changeRecipeNr == "":
             fetchedRecipes = fetchRecipeWebsites(fiveRandomRecipesList)
-            print(fetchedRecipes)
             recipeListNotDone = False
-        elif int(changeRecipeNr) not in range(1,6) or isinstance(changeRecipeNr, (int, float)) == False:
+        elif int(changeRecipeNr) not in range(1,6):
             print("Arvo ei ole 1 ja 5 välillä. Anna uusi arvo.")
             print("----------------------------------------------------------------------------")
         elif len(acquiredFoodList) == 0:
@@ -150,9 +201,9 @@ while programRunning:
 
 
 
-
-
-    # acquiredEmail = inputEmail()
+    print(fiveRandomRecipesList)
+    print(readyForMail)
+    #acquiredEmail = inputEmail(readyForMail, fiveRandomRecipesList)
     break
 
     # Program should:
